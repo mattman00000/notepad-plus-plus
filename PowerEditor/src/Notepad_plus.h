@@ -186,7 +186,6 @@ struct VisibleGUIConf final
 	}
 };
 
-
 class FileDialog;
 class Notepad_plus_Window;
 class AnsiCharPanel;
@@ -282,6 +281,7 @@ public:
 	bool loadSession(Session & session, bool isSnapshotMode = false);
 
 	void notifyBufferChanged(Buffer * buffer, int mask);
+	bool findInFinderFiles(FindersInfo *findInFolderInfo);
 	bool findInFiles();
 	bool replaceInFiles();
 	void setFindReplaceFolderFilter(const TCHAR *dir, const TCHAR *filters);
@@ -340,6 +340,8 @@ private:
 
 	// Dialog
 	FindReplaceDlg _findReplaceDlg;
+	FindInFinderDlg _findInFinderDlg;
+
 	FindIncrementDlg _incrementFindDlg;
     AboutDlg _aboutDlg;
 	DebugInfoDlg _debugInfoDlg;
@@ -445,7 +447,7 @@ private:
 	bool reloadLang();
 	bool loadStyles();
 
-	int currentView(){
+	int currentView() {
 		return _activeView;
 	}
 
@@ -640,8 +642,14 @@ private:
 	}
 
 	static DWORD WINAPI backupDocument(void *params);
-	//static DWORD WINAPI monitorFileOnChange(void * params);
-	//static DWORD WINAPI monitorDirectoryOnChange(void * params);
+
+	static DWORD WINAPI monitorFileOnChange(void * params);
+	struct MonitorInfo final {
+		MonitorInfo(Buffer *buf, HWND nppHandle) :
+			_buffer(buf), _nppHandle(nppHandle) {};
+		Buffer *_buffer = nullptr;
+		HWND _nppHandle = nullptr;
+	};
 };
 
 

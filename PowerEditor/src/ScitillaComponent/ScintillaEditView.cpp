@@ -617,6 +617,15 @@ void ScintillaEditView::setJsonLexer()
 
 	makeStyle(L_JSON, pKwArray);
 
+	basic_string<char> keywordList("");
+	if (pKwArray[LANG_INDEX_INSTR])
+	{
+		basic_string<wchar_t> kwlW = pKwArray[LANG_INDEX_INSTR];
+		keywordList = wstring2string(kwlW, CP_ACP);
+	}
+
+	execute(SCI_SETKEYWORDS, 0, (LPARAM)getCompleteKeywordList(keywordList, L_JSON, LANG_INDEX_INSTR));
+
 	execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold"), reinterpret_cast<LPARAM>("1"));
 	execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold.compact"), reinterpret_cast<LPARAM>("0"));
 
@@ -972,8 +981,8 @@ void ScintillaEditView::setJsLexer()
 			basic_string<wchar_t> kwlW = pKwArray[LANG_INDEX_INSTR];
 			keywordListInstruction = wstring2string(kwlW, CP_ACP);
 		}
-		const char *jsEmbbededInstrs = getCompleteKeywordList(keywordListInstruction, L_JS, LANG_INDEX_INSTR);
-		execute(SCI_SETKEYWORDS, 0, (LPARAM)jsEmbbededInstrs);
+		const char *jsEmbeddedInstrs = getCompleteKeywordList(keywordListInstruction, L_JS, LANG_INDEX_INSTR);
+		execute(SCI_SETKEYWORDS, 0, (LPARAM)jsEmbeddedInstrs);
 	}
 
 	execute(SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold"), reinterpret_cast<LPARAM>("1"));
@@ -3067,7 +3076,6 @@ void ScintillaEditView::changeTextDirection(bool isRTL)
 generic_string ScintillaEditView::getEOLString()
 {
 	const int eol_mode = int(execute(SCI_GETEOLMODE));
-	string newline;
 	if (eol_mode == SC_EOL_CRLF)
 	{
 		return TEXT("\r\n");

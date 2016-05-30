@@ -76,7 +76,7 @@ void Notepad_plus::command(int id)
 
 		case IDM_FILE_OPEN_FOLDER:
 		{
-			Command cmd(TEXT("explorer /select,$(FULL_CURRENT_PATH)"));
+			Command cmd(TEXT("explorer /select,\"$(FULL_CURRENT_PATH)\""));
 			cmd.run(_pPublicInterface->getHSelf());
 		}
 		break;
@@ -85,6 +85,37 @@ void Notepad_plus::command(int id)
 		{
 			Command cmd(TEXT("cmd /K cd /d $(CURRENT_DIRECTORY)"));
 			cmd.run(_pPublicInterface->getHSelf());
+		}
+		break;
+		
+		case IDM_FILE_OPENFOLDERASWORSPACE:
+		{
+			generic_string folderPath = folderBrowser(_pPublicInterface->getHSelf(), TEXT("Select a folder to add in Folder as Workspace panel"));
+			if (not folderPath.empty())
+			{
+				if (_pFileBrowser == nullptr) // first launch, check in params to open folders
+				{
+					vector<generic_string> dummy;
+					launchFileBrowser(dummy);
+					if (_pFileBrowser != nullptr)
+					{
+						checkMenuItem(IDM_VIEW_FILEBROWSER, true);
+						_toolBar.setCheck(IDM_VIEW_FILEBROWSER, true);
+						_pFileBrowser->setClosed(false);
+					}
+					else // problem
+						return;
+				}
+				else
+				{
+					if (_pFileBrowser->isClosed())
+					{
+						_pFileBrowser->display();
+						_pFileBrowser->setClosed(false);
+					}
+				}
+				_pFileBrowser->addRootFolder(folderPath);
+			}
 		}
 		break;
 
@@ -1723,6 +1754,48 @@ void Notepad_plus::command(int id)
 		}
 		break;
 
+		case IDM_VIEW_MONITORING:
+		{
+			static HANDLE hThread = nullptr;
+			Buffer * curBuf = _pEditView->getCurrentBuffer();
+			if (curBuf->isMonitoringOn())
+			{
+				curBuf->stopMonitoring();
+				::CloseHandle(hThread);
+				hThread = nullptr;
+				checkMenuItem(IDM_VIEW_MONITORING, false);
+				_toolBar.setCheck(IDM_VIEW_MONITORING, false);
+				curBuf->setUserReadOnly(false);
+			}
+			else
+			{
+				const TCHAR *longFileName = curBuf->getFullPathName();
+				if (::PathFileExists(longFileName))
+				{
+					if (curBuf->isDirty())
+					{
+						::MessageBox(_pPublicInterface->getHSelf(), TEXT("The document is dirty. Please save the modification before monitoring it."), TEXT("Monitoring problem"), MB_OK);
+					}
+					else
+					{
+						curBuf->startMonitoring(); // monitoring firstly for making monitoring icon 
+						curBuf->setUserReadOnly(true);
+						
+						MonitorInfo *monitorInfo = new MonitorInfo(curBuf, _pPublicInterface->getHSelf());
+						hThread = ::CreateThread(NULL, 0, monitorFileOnChange, (void *)monitorInfo, 0, NULL); // will be deallocated while quitting thread
+						checkMenuItem(IDM_VIEW_MONITORING, true);
+						_toolBar.setCheck(IDM_VIEW_MONITORING, true);
+					}
+				}
+				else
+				{
+					::MessageBox(_pPublicInterface->getHSelf(), TEXT("The file should exist to be monitored."), TEXT("Monitoring problem"), MB_OK);
+				}
+			}
+
+			break;
+		}
+
 		case IDM_EXECUTE:
 		{
 			bool isFirstTime = !_runDlg.isCreated();
@@ -1742,8 +1815,14 @@ void Notepad_plus::command(int id)
 				: (id == IDM_FORMAT_TOUNIX) ? EolType::unix : EolType::macos;
 
 			Buffer* buf = _pEditView->getCurrentBuffer();
-			buf->setEolFormat(newFormat);
-			_pEditView->execute(SCI_CONVERTEOLS, static_cast<int>(buf->getEolFormat()));
+
+			if (not buf->isReadOnly())
+			{
+				LongRunningOperation op;
+				buf->setEolFormat(newFormat);
+				_pEditView->execute(SCI_CONVERTEOLS, static_cast<int>(buf->getEolFormat()));
+			}
+
 			break;
 		}
 

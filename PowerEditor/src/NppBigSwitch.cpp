@@ -215,8 +215,7 @@ LRESULT Notepad_plus::process(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lPa
 
 		case WM_FINDALL_INCURRENTDOC:
 		{
-			findInCurrentFile();
-			return TRUE;
+			return findInCurrentFile();
 		}
 
 		case WM_FINDINFILES:
@@ -224,6 +223,21 @@ LRESULT Notepad_plus::process(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lPa
 			return findInFiles();
 		}
 
+		case WM_FINDALL_INCURRENTFINDER:
+		{
+			FindersInfo *findInFolderInfo = (FindersInfo *)wParam;
+			Finder * newFinder = _findReplaceDlg.createFinder();
+			
+			findInFolderInfo->_pDestFinder = newFinder;
+			bool isOK = findInFinderFiles(findInFolderInfo);
+			return isOK;
+		}
+		/*
+		case NPPM_INTERNAL_REMOVEFINDER:
+		{
+			return _findReplaceDlg.removeFinder((Finder *)wParam);
+		}
+		*/
 		case WM_REPLACEINFILES:
 		{
 			replaceInFiles();
@@ -245,6 +259,26 @@ LRESULT Notepad_plus::process(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lPa
 				_nativeLangSpeaker.changeDlgLang(_findReplaceDlg.getHSelf(), "Find");
 			_findReplaceDlg.launchFindInFilesDlg();
 			setFindReplaceFolderFilter((const TCHAR*) wParam, (const TCHAR*) lParam);
+
+			return TRUE;
+		}
+
+		case NPPM_INTERNAL_FINDINFINDERDLG:
+		{
+			const int strSize = FINDREPLACE_MAXLENGTH;
+			TCHAR str[strSize];
+			Finder *launcher = (Finder *)wParam;
+
+			bool isFirstTime = not _findInFinderDlg.isCreated();
+
+			_findInFinderDlg.doDialog(launcher, _nativeLangSpeaker.isRTL());
+
+			_pEditView->getGenericSelectedText(str, strSize);
+			_findReplaceDlg.setSearchText(str);
+			setFindReplaceFolderFilter(NULL, NULL);
+
+			if (isFirstTime)
+				_nativeLangSpeaker.changeFindReplaceDlgLang(_findReplaceDlg);
 
 			return TRUE;
 		}
@@ -427,6 +461,13 @@ LRESULT Notepad_plus::process(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lPa
 			scnN.nmhdr.hwndFrom = (void *)lParam;
 			scnN.nmhdr.idFrom = (uptr_t)id;
 			_pluginsManager.notify(&scnN);
+			return TRUE;
+		}
+
+		case NPPM_DISABLEAUTOUPDATE:
+		{
+			NppGUI & nppGUI = (NppGUI &)pNppParam->getNppGUI();
+			nppGUI._autoUpdateOpt._doAutoUpdate = false;
 			return TRUE;
 		}
 
@@ -1366,6 +1407,13 @@ LRESULT Notepad_plus::process(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lPa
 				return TRUE;
 			}
 			return FALSE;
+		}
+
+		case NPPM_INTERNAL_RELOADSCROLLTOEND:
+		{
+			Buffer *buf = (Buffer *)wParam;
+			buf->reload();
+			return TRUE;
 		}
 
 		case NPPM_INTERNAL_GETCHECKDOCOPT:

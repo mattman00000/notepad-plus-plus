@@ -454,7 +454,7 @@ BOOL Notepad_plus::notify(SCNotification *notification)
 			_tabPopupMenu.checkItem(IDM_EDIT_SETREADONLY, isUserReadOnly);
 
 			bool isSysReadOnly = buf->getFileReadOnly();
-			_tabPopupMenu.enableItem(IDM_EDIT_SETREADONLY, !isSysReadOnly);
+			_tabPopupMenu.enableItem(IDM_EDIT_SETREADONLY, not isSysReadOnly && not buf->isMonitoringOn());
 			_tabPopupMenu.enableItem(IDM_EDIT_CLEARREADONLY, isSysReadOnly);
 
 			bool isFileExisting = PathFileExists(buf->getFullPathName()) != FALSE;
@@ -485,6 +485,7 @@ BOOL Notepad_plus::notify(SCNotification *notification)
 				_pEditView->marginClick(notification->position, notification->modifiers);
 				if (_pDocMap)
 					_pDocMap->fold(lineClick, _pEditView->isFolded(lineClick));
+				_smartHighlighter.highlightView(_pEditView);
 			}
 			else if ((notification->margin == ScintillaEditView::_SC_MARGE_SYBOLE) && !notification->modifiers)
 			{
@@ -799,6 +800,7 @@ BOOL Notepad_plus::notify(SCNotification *notification)
 
 		case SCN_ZOOM:
 		{
+			_smartHighlighter.highlightView(notifyView);
 			break;
 		}
 

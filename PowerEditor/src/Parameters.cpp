@@ -77,6 +77,7 @@ static const WinMenuKeyDefinition winKeyDefs[] =
 	//
 	{VK_N,       IDM_FILE_NEW,                                 true,  false, false, nullptr},
 	{VK_O,       IDM_FILE_OPEN,                                true,  false, false, nullptr},
+	{VK_NULL,    IDM_FILE_OPENFOLDERASWORSPACE,                false, false, false, nullptr},
 	{VK_NULL,    IDM_FILE_RELOAD,                              false, false, false, nullptr},
 	{VK_S,       IDM_FILE_SAVE,                                true,  false, false, nullptr},
 	{VK_S,       IDM_FILE_SAVEAS,                              true,  true,  false, nullptr},
@@ -2564,24 +2565,20 @@ bool NppParameters::importUDLFromFile(generic_string sourceFile)
 
 bool NppParameters::exportUDLToFile(int langIndex2export, generic_string fileName2save)
 {
-	if (langIndex2export != -1 && langIndex2export >= _nbUserLang)
+	if (langIndex2export >= NB_MAX_USER_LANG)
+		return false;
+
+	if (langIndex2export < 0 && langIndex2export >= _nbUserLang)
 		return false;
 
 	TiXmlDocument *pNewXmlUserLangDoc = new TiXmlDocument(fileName2save);
 	TiXmlNode *newRoot2export = pNewXmlUserLangDoc->InsertEndChild(TiXmlElement(TEXT("NotepadPlus")));
 
-	bool b = false;
-
-	if ( langIndex2export >= NB_MAX_USER_LANG )
-	{
-		return false;
-	}
-
 	insertUserLang2Tree(newRoot2export, _userLangArray[langIndex2export]);
-	b = pNewXmlUserLangDoc->SaveFile();
+	bool result = pNewXmlUserLangDoc->SaveFile();
 
 	delete pNewXmlUserLangDoc;
-	return b;
+	return result;
 }
 
 LangType NppParameters::getLangFromExt(const TCHAR *ext)
@@ -6033,6 +6030,8 @@ int NppParameters::langTypeToCommandID(LangType lt) const
 			id = IDM_LANG_TEX; break;
 		case L_FORTRAN :
 			id = IDM_LANG_FORTRAN; break;
+		case L_FORTRAN_77 :
+			id = IDM_LANG_FORTRAN_77; break;
 		case L_BASH :
 			id = IDM_LANG_BASH; break;
 		case L_FLASH :
