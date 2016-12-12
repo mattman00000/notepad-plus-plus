@@ -62,6 +62,7 @@ MenuPosition menuPos[] = {
 	{ 1, 16, -1, "edit-eolConversion" },
 	{ 1, 17, -1, "edit-blankOperations" },
 	{ 1, 18, -1, "edit-pasteSpecial" },
+	{ 1, 19, -1, "edit-onSelection" },
 
 	{ 2, 18, -1, "search-markAll" },
 	{ 2, 19, -1, "search-unmarkAll" },
@@ -723,7 +724,7 @@ void NativeLangSpeaker::changeFindReplaceDlgLang(FindReplaceDlg & findReplaceDlg
 
 void NativeLangSpeaker::changePrefereceDlgLang(PreferenceDlg & preference) 
 {
-	int currentSel = preference.getListSelectedIndex();
+	auto currentSel = preference.getListSelectedIndex();
 	changeDlgLang(preference.getHSelf(), "Preference");
 
 	WcharMbcsConvertor *wmc = WcharMbcsConvertor::getInstance();
@@ -769,18 +770,18 @@ void NativeLangSpeaker::changePrefereceDlgLang(PreferenceDlg & preference)
 		preference.renameDialogTitle(TEXT("FileAssoc"), nameW);
 	}
 
-	changeDlgLang(preference._langMenuDlg.getHSelf(), "LangMenu", titre);
+	changeDlgLang(preference._langMenuDlg.getHSelf(), "Language", titre);
 	if (titre[0] != '\0')
 	{
 		const wchar_t *nameW = wmc->char2wchar(titre, _nativeLangEncoding);
-		preference.renameDialogTitle(TEXT("LangMenu"), nameW);
+		preference.renameDialogTitle(TEXT("Language"), nameW);
 	}
 
-	changeDlgLang(preference._tabSettings.getHSelf(), "TabSettings", titre);
+	changeDlgLang(preference._highlighting.getHSelf(), "Highlighting", titre);
 	if (titre[0] != '\0')
 	{
 		const wchar_t *nameW = wmc->char2wchar(titre, _nativeLangEncoding);
-		preference.renameDialogTitle(TEXT("TabSettings"), nameW);
+		preference.renameDialogTitle(TEXT("Highlighting"), nameW);
 	}
 
 	changeDlgLang(preference._printSettingsDlg.getHSelf(), "Print", titre);
@@ -830,6 +831,13 @@ void NativeLangSpeaker::changePrefereceDlgLang(PreferenceDlg & preference)
 		preference.renameDialogTitle(TEXT("Cloud"), nameW);
 	}
 
+	changeDlgLang(preference._searchEngineDlg.getHSelf(), "SearchEngine", titre);
+	if (titre[0] != '\0')
+	{
+		const wchar_t *nameW = wmc->char2wchar(titre, _nativeLangEncoding);
+		preference.renameDialogTitle(TEXT("SearchEngine"), nameW);
+	}
+
 	preference.setListSelection(currentSel);
 }
 
@@ -840,8 +848,6 @@ void NativeLangSpeaker::changeShortcutLang()
 	NppParameters * pNppParam = NppParameters::getInstance();
 	vector<CommandShortcut> & mainshortcuts = pNppParam->getUserShortcuts();
 	vector<ScintillaKeyMap> & scinshortcuts = pNppParam->getScintillaKeyList();
-	int mainSize = (int)mainshortcuts.size();
-	int scinSize = (int)scinshortcuts.size();
 
 	TiXmlNodeA *shortcuts = _nativeLangA->FirstChild("Shortcuts");
 	if (!shortcuts) return;
@@ -860,7 +866,8 @@ void NativeLangSpeaker::changeShortcutLang()
 		int index, id;
 		if (element->Attribute("index", &index) && element->Attribute("id", &id))
 		{
-			if (index > -1 && index < mainSize) { //valid index only
+			if (index > -1 && static_cast<size_t>(index) < mainshortcuts.size()) //valid index only
+			{
 				const char *name = element->Attribute("name");
 				CommandShortcut & csc = mainshortcuts[index];
 				if (csc.getID() == (unsigned long)id) 
@@ -891,7 +898,8 @@ void NativeLangSpeaker::changeShortcutLang()
 		int index;
 		if (element->Attribute("index", &index))
 		{
-			if (index > -1 && index < scinSize) { //valid index only
+			if (index > -1 && static_cast<size_t>(index) < scinshortcuts.size()) //valid index only
+			{
 				const char *name = element->Attribute("name");
 				ScintillaKeyMap & skm = scinshortcuts[index];
 

@@ -250,7 +250,7 @@ public:
 	bool isFileSession(const TCHAR * filename);
 	bool isFileWorkspace(const TCHAR * filename);
 	void filePrint(bool showDialog);
-	bool saveScintillaParams();
+	void saveScintillasZoom();
 
 	bool saveGUIParams();
 	bool saveProjectPanelsParams();
@@ -364,6 +364,8 @@ private:
 
 	bool _sysMenuEntering = false;
 
+	// make sure we don't recursively call doClose when closing the last file with -quitOnEmpty
+	bool _isAttemptingCloseOnQuit = false;
 
 	// For FullScreen/PostIt features
 	VisibleGUIConf	_beforeSpecialView;
@@ -376,9 +378,11 @@ private:
 	bool _playingBackMacro = false;
 	RunMacroDlg _runMacroDlg;
 
+	// For conflict detection when saving Macros or RunCommands
+	ShortcutMapper * _pShortcutMapper = nullptr;
+
 	// For hotspot
 	bool _linkTriggered = true;
-	bool _isHotspotDblClicked = false;
 	bool _isFolding = false;
 
 	//For Dynamic selection highlight
@@ -461,6 +465,8 @@ private:
 
 	bool canHideView(int whichOne);	//true if view can safely be hidden (no open docs etc)
 
+	bool isEmpty(); // true if we have 1 view with 1 clean, untitled doc
+
 	int switchEditViewTo(int gid);	//activate other view (set focus etc)
 
 	void docGotoAnotherEditView(FileTransferMode mode);	//TransferMode
@@ -522,7 +528,7 @@ private:
     void bookmarkAdd(int lineno) const
 	{
 		if (lineno == -1)
-			lineno = _pEditView->getCurrentLineNumber();
+			lineno = static_cast<int32_t>(_pEditView->getCurrentLineNumber());
 		if (!bookmarkPresent(lineno))
 			_pEditView->execute(SCI_MARKERADD, lineno, MARK_BOOKMARK);
 	}
@@ -530,15 +536,15 @@ private:
     void bookmarkDelete(int lineno) const
 	{
 		if (lineno == -1)
-			lineno = _pEditView->getCurrentLineNumber();
-		if ( bookmarkPresent(lineno))
+			lineno = static_cast<int32_t>(_pEditView->getCurrentLineNumber());
+		while (bookmarkPresent(lineno))
 			_pEditView->execute(SCI_MARKERDELETE, lineno, MARK_BOOKMARK);
 	}
 
     bool bookmarkPresent(int lineno) const
 	{
 		if (lineno == -1)
-			lineno = _pEditView->getCurrentLineNumber();
+			lineno = static_cast<int32_t>(_pEditView->getCurrentLineNumber());
 		LRESULT state = _pEditView->execute(SCI_MARKERGET, lineno);
 		return ((state & (1 << MARK_BOOKMARK)) != 0);
 	}
@@ -546,7 +552,7 @@ private:
     void bookmarkToggle(int lineno) const
 	{
 		if (lineno == -1)
-			lineno = _pEditView->getCurrentLineNumber();
+			lineno = static_cast<int32_t>(_pEditView->getCurrentLineNumber());
 
 		if (bookmarkPresent(lineno))
 			bookmarkDelete(lineno);
@@ -572,12 +578,12 @@ private:
     bool braceMatch();
 
     void activateNextDoc(bool direction);
-	void activateDoc(int pos);
+	void activateDoc(size_t pos);
 
 	void updateStatusBar();
 	size_t getSelectedCharNumber(UniMode);
 	size_t getCurrentDocCharCount(UniMode u);
-	int getSelectedAreas();
+	size_t getSelectedAreas();
 	size_t getSelectedBytes();
 	bool isFormatUnicode(UniMode);
 	int getBOMSize(UniMode);

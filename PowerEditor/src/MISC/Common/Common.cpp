@@ -53,6 +53,13 @@ void printStr(const TCHAR *str2print)
 	::MessageBox(NULL, str2print, TEXT(""), MB_OK);
 }
 
+generic_string commafyInt(size_t n)
+{
+	generic_stringstream ss;
+	ss.imbue(std::locale(""));
+	ss << n;
+	return ss.str();
+}
 
 std::string getFileContent(const TCHAR *file2read)
 {
@@ -513,7 +520,7 @@ const char * WcharMbcsConvertor::wchar2char(const wchar_t * wcharStr2Convert, UI
 		_multiByteStr.sizeTo(len);
 		len = WideCharToMultiByte(codepage, 0, wcharStr2Convert, -1, _multiByteStr, len, NULL, NULL); // not needed?
 
-        if ((int)*mstart < lstrlenW(wcharStr2Convert) && (int)*mend < lstrlenW(wcharStr2Convert))
+        if (*mstart < lstrlenW(wcharStr2Convert) && *mend < lstrlenW(wcharStr2Convert))
         {
 			*mstart = WideCharToMultiByte(codepage, 0, wcharStr2Convert, *mstart, NULL, 0, NULL, NULL);
 			*mend = WideCharToMultiByte(codepage, 0, wcharStr2Convert, *mend, NULL, 0, NULL, NULL);
@@ -580,11 +587,11 @@ generic_string intToString(int val)
 	// can't use abs here because std::numeric_limits<int>::min() has no positive representation
 	//val = std::abs(val);
 
-	vt.push_back('0' + (TCHAR)(std::abs(val % 10)));
+	vt.push_back('0' + static_cast<TCHAR>(std::abs(val % 10)));
 	val /= 10;
 	while (val != 0)
 	{
-		vt.push_back('0' + (TCHAR)(std::abs(val % 10)));
+		vt.push_back('0' + static_cast<TCHAR>(std::abs(val % 10)));
 		val /= 10;
 	}
 
@@ -599,11 +606,11 @@ generic_string uintToString(unsigned int val)
 {
 	std::vector<TCHAR> vt;
 
-	vt.push_back('0' + (TCHAR)(val % 10));
+	vt.push_back('0' + static_cast<TCHAR>(val % 10));
 	val /= 10;
 	while (val != 0)
 	{
-		vt.push_back('0' + (TCHAR)(val % 10));
+		vt.push_back('0' + static_cast<TCHAR>(val % 10));
 		val /= 10;
 	}
 
@@ -618,7 +625,7 @@ generic_string BuildMenuFileName(int filenameLen, unsigned int pos, const generi
 	if (pos < 9)
 	{
 		strTemp.push_back('&');
-		strTemp.push_back('1' + (TCHAR)pos);
+		strTemp.push_back('1' + static_cast<TCHAR>(pos));
 	}
 	else if (pos == 9)
 	{
@@ -742,7 +749,7 @@ COLORREF getCtrlBgColor(HWND hWnd)
 						HGDIOBJ hOld = SelectObject(hdcMem, hBmp);
 						if (hOld)
 						{
-							if (SendMessage(hWnd,	WM_ERASEBKGND, (WPARAM)hdcMem, 0))
+							if (SendMessage(hWnd, WM_ERASEBKGND, reinterpret_cast<WPARAM>(hdcMem), 0))
 							{
 								crRet = GetPixel(hdcMem, 2, 2); // 0, 0 is usually on the border
 							}
@@ -781,8 +788,8 @@ generic_string stringReplace(generic_string subject, const generic_string& searc
 
 std::vector<generic_string> stringSplit(const generic_string& input, const generic_string& delimiter)
 {
-	auto start = 0U;
-	auto end = input.find(delimiter);
+	size_t start = 0U;
+	size_t end = input.find(delimiter);
 	std::vector<generic_string> output;
 	const size_t delimiterLength = delimiter.length();
 	while (end != std::string::npos)
@@ -849,7 +856,7 @@ double stodLocale(const generic_string& str, _locale_t loc, size_t* idx)
 
 bool str2Clipboard(const generic_string &str2cpy, HWND hwnd)
 {
-	int len2Allocate = (str2cpy.size() + 1) * sizeof(TCHAR);
+	size_t len2Allocate = (str2cpy.size() + 1) * sizeof(TCHAR);
 	HGLOBAL hglbCopy = ::GlobalAlloc(GMEM_MOVEABLE, len2Allocate);
 	if (hglbCopy == NULL)
 	{

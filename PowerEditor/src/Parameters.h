@@ -26,46 +26,16 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #pragma once
 
-#ifndef TINYXMLA_INCLUDED
 #include "tinyxmlA.h"
-#endif //TINYXMLA_INCLUDED
-
-#ifndef TINYXML_INCLUDED
 #include "tinyxml.h"
-#endif //TINYXML_INCLUDED
-
-#ifndef SCINTILLA_H
 #include "Scintilla.h"
-#endif //SCINTILLA_H
-
-#ifndef SCINTILLA_REF_H
 #include "ScintillaRef.h"
-#endif //SCINTILLA_REF_H
-
-#ifndef TOOL_BAR_H
 #include "ToolBar.h"
-#endif //TOOL_BAR_H
-
-#ifndef USER_DEFINE_LANG_REFERENCE_H
 #include "UserDefineLangReference.h"
-#endif //USER_DEFINE_LANG_REFERENCE_H
-
-#ifndef COLORS_H
 #include "colors.h"
-#endif //COLORS_H
-
-#ifndef SHORTCUTS_H
 #include "shortcut.h"
-#endif //SHORTCUTS_H
-
-#ifndef CONTEXTMENU_H
 #include "ContextMenu.h"
-#endif //CONTEXTMENU_H
-
-#ifndef DPIMANAGER_H
 #include "dpiManager.h"
-#endif //DPIMANAGER_H
-
 #include <assert.h>
 #include <tchar.h>
 
@@ -82,15 +52,16 @@ const int UDD_DOCKED = 2; // 0000 0010
 // 2 : 0000 0010 hide & docked
 // 3 : 0000 0011 show & docked
 
-const int TAB_DRAWTOPBAR = 1;	  //  0000 0001
-const int TAB_DRAWINACTIVETAB = 2; //  0000 0010
-const int TAB_DRAGNDROP = 4;	   //  0000 0100
-const int TAB_REDUCE = 8;		   //  0000 1000
-const int TAB_CLOSEBUTTON = 16;	//  0001 0000
-const int TAB_DBCLK2CLOSE = 32;	//  0010 0000
-const int TAB_VERTICAL = 64;	   //  0100 0000
-const int TAB_MULTILINE = 128;	 //  1000 0000
-const int TAB_HIDE = 256;		  //1 0000 0000
+const int TAB_DRAWTOPBAR = 1;      //0000 0000 0001
+const int TAB_DRAWINACTIVETAB = 2; //0000 0000 0010
+const int TAB_DRAGNDROP = 4;       //0000 0000 0100
+const int TAB_REDUCE = 8;          //0000 0000 1000
+const int TAB_CLOSEBUTTON = 16;    //0000 0001 0000
+const int TAB_DBCLK2CLOSE = 32;    //0000 0010 0000
+const int TAB_VERTICAL = 64;       //0000 0100 0000
+const int TAB_MULTILINE = 128;     //0000 1000 0000
+const int TAB_HIDE = 256;          //0001 0000 0000
+const int TAB_QUITONEMPTY = 512;   //0010 0000 0000
 
 
 enum class EolType: std::uint8_t
@@ -185,7 +156,7 @@ struct sessionFileInfo : public Position
 	int	_encoding = -1;
 
 	generic_string _backupFilePath;
-	time_t _originalFileLastModifTimestamp;
+	time_t _originalFileLastModifTimestamp = 0;
 };
 
 
@@ -436,9 +407,9 @@ public:
 	int getNbStyler() const {return _nbStyler;};
 	void setNbStyler(int nb) {_nbStyler = nb;};
 
-	Style& getStyler(int index)
+	Style& getStyler(size_t index)
 	{
-		assert((size_t) index < SCE_STYLE_ARRAY_SIZE);
+		assert(index < SCE_STYLE_ARRAY_SIZE);
 		return _styleArray[index];
 	}
 
@@ -490,7 +461,7 @@ public:
 	{
 		if (this != &ls)
 		{
-			*((StyleArray *)this) = ls;
+			*(static_cast<StyleArray *>(this)) = ls;
 			this->_lexerName = ls._lexerName;
 			this->_lexerDesc = ls._lexerDesc;
 			this->_lexerUserExt = ls._lexerUserExt;
@@ -649,7 +620,7 @@ public:
 			   !(month == 11 && day > 30));
 	}
 
-	Date(const TCHAR *dateStr);
+	explicit Date(const TCHAR *dateStr);
 
 	// The constructor which makes the date of number of days from now
 	// nbDaysFromNow could be negative if user want to make a date in the past
@@ -733,14 +704,14 @@ struct NppGUI final
 	{
 		_appPos.left = 0;
 		_appPos.top = 0;
-		_appPos.right = 700;
-		_appPos.bottom = 500;
+		_appPos.right = 1100;
+		_appPos.bottom = 700;
 
 		_defaultDir[0] = 0;
 		_defaultDirExp[0] = 0;
 	}
 
-	toolBarStatusType _toolBarStatus = TB_LARGE;
+	toolBarStatusType _toolBarStatus = TB_STANDARD;
 	bool _toolbarShow = true;
 	bool _statusBarShow = true;
 	bool _menuBarShow = true;
@@ -753,17 +724,17 @@ struct NppGUI final
 	// 6th bit : enable multiline
 
 	// 0:don't draw; 1:draw top bar 2:draw inactive tabs 3:draw both 7:draw both+drag&drop
-	int _tabStatus = (TAB_DRAWTOPBAR | TAB_DRAWINACTIVETAB | TAB_DRAGNDROP);
+	int _tabStatus = (TAB_DRAWTOPBAR | TAB_DRAWINACTIVETAB | TAB_DRAGNDROP | TAB_REDUCE | TAB_CLOSEBUTTON);
 
-	bool _splitterPos = POS_HORIZOTAL;
+	bool _splitterPos = POS_VERTICAL;
 	int _userDefineDlgStatus = UDD_DOCKED;
 
-	int _tabSize = 8;
+	int _tabSize = 4;
 	bool _tabReplacedBySpace = false;
 
 	ChangeDetect _fileAutoDetection = cdEnabled;
 	ChangeDetect _fileAutoDetectionOriginalValue = cdEnabled;
-	bool _checkHistoryFiles = true;
+	bool _checkHistoryFiles = false;
 
 	RECT _appPos;
 
@@ -775,7 +746,12 @@ struct NppGUI final
 	bool _doTaskList = true;
 	bool _maitainIndent = true;
 	bool _enableSmartHilite = true;
+
 	bool _smartHiliteCaseSensitive = false;
+	bool _smartHiliteWordOnly = true;
+	bool _smartHiliteUseFindSettings = false;
+	bool _smartHiliteOnAnotherView = false;
+
 	bool _disableSmartHiliteTmp = false;
 	bool _enableTagsMatchHilite = true;
 	bool _enableTagAttrsHilite = true;
@@ -809,21 +785,19 @@ struct NppGUI final
 	enum AutocStatus{autoc_none, autoc_func, autoc_word, autoc_both};
 	AutocStatus _autocStatus = autoc_both;
 	size_t  _autocFromLen = 1;
+	bool _autocIgnoreNumbers = true;
 	bool _funcParams = false;
 	MatchedPairConf _matchedPairConf;
 
 	generic_string _definedSessionExt;
 	generic_string _definedWorkspaceExt;
-	
-
-
 
 	struct AutoUpdateOptions
 	{
-		bool _doAutoUpdate;
-		int _intervalDays;
+		bool _doAutoUpdate = true;
+		int _intervalDays = 15;
 		Date _nextUpdateDate;
-		AutoUpdateOptions(): _doAutoUpdate(true), _intervalDays(15), _nextUpdateDate(Date()) {};
+		AutoUpdateOptions(): _nextUpdateDate(Date()) {};
 	}
 	_autoUpdateOpt;
 
@@ -847,6 +821,12 @@ struct NppGUI final
 	generic_string _cloudPath; // this option will never be read/written from/to config.xml
 	unsigned char _availableClouds = '\0'; // this option will never be read/written from/to config.xml
 	bool _useNewStyleSaveDlg = false;
+
+	enum SearchEngineChoice{ se_custom = 0, se_duckDuckGo = 1, se_google = 2, se_bing = 3, se_yahoo = 4 };
+	SearchEngineChoice _searchEngineChoice = se_google;
+	generic_string _searchEngineCustom;
+
+	bool _isFolderDroppedOpenFiles = false;
 };
 
 struct ScintillaViewParams
@@ -867,6 +847,7 @@ struct ScintillaViewParams
 	bool _whiteSpaceShow = false;
 	bool _eolShow;
 	int _borderWidth = 2;
+	bool _scrollBeyondLastLine = false;
 	bool _disableAdvancedScrolling = false;
 	bool _doSmoothFont = false;
 	bool _showBorderEdge = true;
@@ -1031,7 +1012,6 @@ public:
 		return *this;
 	}
 
-	// int getNbKeywordList() {return SCE_USER_KWLIST_TOTAL;};
 	const TCHAR * getName() {return _name.c_str();};
 	const TCHAR * getExtention() {return _ext.c_str();};
 	const TCHAR * getUdlVersion() {return _udlVersion.c_str();};
@@ -1042,7 +1022,6 @@ private:
 	generic_string _ext;
 	generic_string _udlVersion;
 
-	//TCHAR _keywordLists[nbKeywodList][max_char];
 	TCHAR _keywordLists[SCE_USER_KWLIST_TOTAL][max_char];
 	bool _isPrefix[SCE_USER_TOTAL_KEYWORD_GROUPS];
 
@@ -1251,11 +1230,11 @@ public:
 
 	bool load();
 	bool reloadLang();
-	bool reloadStylers(TCHAR *stylePath = NULL);
+	bool reloadStylers(TCHAR *stylePath = nullptr);
 	void destroyInstance();
 	generic_string getSettingsFolder();
 
-	bool _isTaskListRBUTTONUP_Active;
+	bool _isTaskListRBUTTONUP_Active = false;
 	int L_END;
 
 	const NppGUI & getNppGUI() const {
@@ -1281,9 +1260,8 @@ public:
 		return nullptr;
 	}
 
-	Lang * getLangFromIndex(int i) const
-	{
-		return (i >= 0 and i < _nbLang) ? _langList[i] : nullptr;
+	Lang * getLangFromIndex(size_t i) const {
+		return (i < size_t(_nbLang)) ? _langList[i] : nullptr;
 	}
 
 	int getNbLang() const {return _nbLang;};
@@ -1347,9 +1325,8 @@ public:
 
 	TiXmlNode* getChildElementByAttribut(TiXmlNode *pere, const TCHAR *childName, const TCHAR *attributName, const TCHAR *attributVal) const;
 
-	bool writeScintillaParams(const ScintillaViewParams & svp);
-
-	bool writeGUIParams();
+	bool writeScintillaParams();
+	void createXmlTreeFromGUIParams();
 
 	void writeStyles(LexerStylerArray & lexersStylers, StyleArray & globalStylers);
 	bool insertTabInfo(const TCHAR *langName, int tabInfo);
@@ -1368,7 +1345,7 @@ public:
 	const std::vector<generic_string>& getFontList() const { return _fontlist; }
 
 	int getNbUserLang() const {return _nbUserLang;}
-	UserLangContainer & getULCFromIndex(int i) {return *_userLangArray[i];};
+	UserLangContainer & getULCFromIndex(size_t i) {return *_userLangArray[i];};
 	UserLangContainer * getULCFromName(const TCHAR *userLangName);
 
 	int getNbExternalLang() const {return _nbExternalLang;};
@@ -1402,7 +1379,7 @@ public:
 	const TCHAR * getUserDefinedLangNameFromExt(TCHAR *ext, TCHAR *fullName) const;
 
 	int addUserLangToEnd(const UserLangContainer & userLang, const TCHAR *newName);
-	void removeUserLang(int index);
+	void removeUserLang(size_t index);
 
 	bool isExistingExternalLangName(const TCHAR *newName) const;
 
@@ -1434,14 +1411,14 @@ public:
 	bool isRemappingShortcut() const {return _shortcuts.size() != 0;};
 
 	std::vector<CommandShortcut> & getUserShortcuts() { return _shortcuts; };
-	std::vector<int> & getUserModifiedShortcuts() { return _customizedShortcuts; };
-	void addUserModifiedIndex(int index);
+	std::vector<size_t> & getUserModifiedShortcuts() { return _customizedShortcuts; };
+	void addUserModifiedIndex(size_t index);
 
 	std::vector<MacroShortcut> & getMacroList() { return _macros; };
 	std::vector<UserCommand> & getUserCommandList() { return _userCommands; };
 	std::vector<PluginCmdShortcut> & getPluginCommandList() { return _pluginCommands; };
-	std::vector<int> & getPluginModifiedKeyIndices() { return _pluginCustomizedCmds; };
-	void addPluginModifiedIndex(int index);
+	std::vector<size_t> & getPluginModifiedKeyIndices() { return _pluginCustomizedCmds; };
+	void addPluginModifiedIndex(size_t index);
 
 	std::vector<ScintillaKeyMap> & getScintillaKeyList() { return _scintillaKeyCommands; };
 	std::vector<int> & getScintillaModifiedKeyIndices() { return _scintillaModifiedKeyIndices; };
@@ -1499,7 +1476,7 @@ public:
 	winVer getWinVersion() const {return _winVersion;};
 	generic_string getWinVersionStr() const;
 	FindHistory & getFindHistory() {return _findHistory;};
-	bool _isFindReplacing; // an on the fly variable for find/replace functions
+	bool _isFindReplacing = false; // an on the fly variable for find/replace functions
 	void safeWow64EnableWow64FsRedirection(BOOL Wow64FsEnableRedirection);
 
 	LocalizationSwitcher & getLocalizationSwitcher() {
@@ -1523,7 +1500,7 @@ public:
 
 	PluginList & getPluginList() {return _pluginList;};
 	bool importUDLFromFile(generic_string sourceFile);
-	bool exportUDLToFile(int langIndex2export, generic_string fileName2save);
+	bool exportUDLToFile(size_t langIndex2export, generic_string fileName2save);
 	NativeLangSpeaker* getNativeLangSpeaker() {
 		return _pNativeLangSpeaker;
 	}
@@ -1545,6 +1522,7 @@ public:
 	void setCloudChoice(const TCHAR *pathChoice);
 	void removeCloudChoice();
 	bool isCloudPathChanged() const;
+	bool isx64() const { return _isx64; };
 
 	COLORREF getCurrentDefaultBgColor() const {
 		return _currentDefaultBgColor;
@@ -1578,42 +1556,51 @@ private:
 
 	static NppParameters *_pSelf;
 
-	TiXmlDocument *_pXmlDoc, *_pXmlUserDoc, *_pXmlUserStylerDoc, *_pXmlUserLangDoc,\
-		*_pXmlToolIconsDoc, *_pXmlShortcutDoc, *_pXmlSessionDoc,\
-		*_pXmlBlacklistDoc;
-
+	TiXmlDocument *_pXmlDoc = nullptr;
+	TiXmlDocument *_pXmlUserDoc = nullptr;
+	TiXmlDocument *_pXmlUserStylerDoc = nullptr;
+	TiXmlDocument *_pXmlUserLangDoc = nullptr;
+	TiXmlDocument *_pXmlToolIconsDoc = nullptr;
+	TiXmlDocument *_pXmlShortcutDoc = nullptr;
+	TiXmlDocument *_pXmlSessionDoc = nullptr;
+	TiXmlDocument *_pXmlBlacklistDoc = nullptr;
+	
 	TiXmlDocument *_importedULD[NB_MAX_IMPORTED_UDL];
+
+	TiXmlDocumentA *_pXmlNativeLangDocA = nullptr;
+	TiXmlDocumentA *_pXmlContextMenuDocA = nullptr;
+	
 	int _nbImportedULD;
 
-	TiXmlDocumentA *_pXmlNativeLangDocA, *_pXmlContextMenuDocA;
+
 
 	std::vector<TiXmlDocument *> _pXmlExternalLexerDoc;
 
 	NppGUI _nppGUI;
 	ScintillaViewParams _svp;
 	Lang *_langList[NB_LANG];
-	int _nbLang;
+	int _nbLang = 0;
 
 	// Recent File History
 	generic_string *_LRFileList[NB_MAX_LRF_FILE];
-	int _nbRecentFile;
-	int _nbMaxRecentFile;
-	bool _putRecentFileInSubMenu;
-	int _recentFileCustomLength;	//	<0: Full File Path Name
-									//	=0: Only File Name
-									//	>0: Custom Entry Length
+	int _nbRecentFile = 0;
+	int _nbMaxRecentFile = 10;
+	bool _putRecentFileInSubMenu = false;
+	int _recentFileCustomLength = RECENTFILES_SHOWFULLPATH;	//	<0: Full File Path Name
+															//	=0: Only File Name
+															//	>0: Custom Entry Length
 
 	FindHistory _findHistory;
 
 	UserLangContainer *_userLangArray[NB_MAX_USER_LANG];
-	int _nbUserLang;
+	int _nbUserLang = 0;
 	generic_string _userDefineLangPath;
 	ExternalLangContainer *_externalLangArray[NB_MAX_EXTERNAL_LANG];
-	int _nbExternalLang;
+	int _nbExternalLang = 0;
 
 	CmdLineParams _cmdLineParams;
 
-	int _fileSaveDlgFilterIndex;
+	int _fileSaveDlgFilterIndex = -1;
 
 	// All Styles (colours & fonts)
 	LexerStylerArray _lexerStylerArray;
@@ -1623,22 +1610,23 @@ private:
 	std::vector<generic_string> _blacklist;
 	PluginList _pluginList;
 
-	HMODULE _hUXTheme;
+	HMODULE _hUXTheme = nullptr;
 
-	WNDPROC _transparentFuncAddr;
-	WNDPROC _enableThemeDialogTextureFuncAddr;
+	WNDPROC _transparentFuncAddr = nullptr;
+	WNDPROC _enableThemeDialogTextureFuncAddr = nullptr;
 	bool _isLocal;
+	bool _isx64 = false; // by default 32-bit
 
 public:
 	void setShortcutDirty() { _isAnyShortcutModified = true; };
 private:
 	bool _isAnyShortcutModified = false;
 	std::vector<CommandShortcut> _shortcuts;			//main menu shortuts. Static size
-	std::vector<int> _customizedShortcuts;			//altered main menu shortcuts. Indices static. Needed when saving alterations
+	std::vector<size_t> _customizedShortcuts;			//altered main menu shortcuts. Indices static. Needed when saving alterations
 	std::vector<MacroShortcut> _macros;				//macro shortcuts, dynamic size, defined on loading macros and adding/deleting them
 	std::vector<UserCommand> _userCommands;			//run shortcuts, dynamic size, defined on loading run commands and adding/deleting them
 	std::vector<PluginCmdShortcut> _pluginCommands;	//plugin commands, dynamic size, defined on loading plugins
-	std::vector<int> _pluginCustomizedCmds;			//plugincommands that have been altered. Indices determined after loading ALL plugins. Needed when saving alterations
+	std::vector<size_t> _pluginCustomizedCmds;			//plugincommands that have been altered. Indices determined after loading ALL plugins. Needed when saving alterations
 
 	std::vector<ScintillaKeyMap> _scintillaKeyCommands;	//scintilla keycommands. Static size
 	std::vector<int> _scintillaModifiedKeyIndices;		//modified scintilla keys. Indices static, determined by searching for commandId. Needed when saving alterations
@@ -1669,11 +1657,11 @@ private:
 	ScintillaAccelerator * _pScintAccelerator;
 
 	FindDlgTabTitiles _findDlgTabTitiles;
-	bool _asNotepadStyle;
+	bool _asNotepadStyle = false;
 
 	winVer _winVersion;
 
-	NativeLangSpeaker *_pNativeLangSpeaker;
+	NativeLangSpeaker *_pNativeLangSpeaker = nullptr;
 
 	COLORREF _currentDefaultBgColor;
 	COLORREF _currentDefaultFgColor;

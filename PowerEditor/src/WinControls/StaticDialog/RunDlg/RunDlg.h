@@ -34,6 +34,7 @@ const TCHAR fileNamePart[] = TEXT("NAME_PART");
 const TCHAR fileExtPart[] = TEXT("EXT_PART");
 const TCHAR currentWord[] = TEXT("CURRENT_WORD");
 const TCHAR nppDir[] = TEXT("NPP_DIRECTORY");
+const TCHAR nppFullFilePath[] = TEXT("NPP_FULL_FILE_PATH");
 const TCHAR currentLine[] = TEXT("CURRENT_LINE");
 const TCHAR currentColumn[] = TEXT("CURRENT_COLUMN");
 
@@ -43,8 +44,8 @@ void expandNppEnvironmentStrs(const TCHAR *strSrc, TCHAR *stringDest, size_t str
 class Command {
 public :
 	Command(){};
-	Command(TCHAR *cmd) : _cmdLine(cmd){};
-	Command(generic_string cmd) : _cmdLine(cmd){};
+	explicit Command(TCHAR *cmd) : _cmdLine(cmd){};
+	explicit Command(generic_string cmd) : _cmdLine(cmd){};
 	HINSTANCE run(HWND hWnd);
 
 protected :
